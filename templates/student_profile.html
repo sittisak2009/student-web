@@ -9,49 +9,89 @@
     <style> body { font-family: 'Kanit', sans-serif; } </style>
 </head>
 <body class="bg-slate-100 min-h-screen p-4 md:p-8">
-    <div class="max-w-xl mx-auto space-y-6">
+    <div class="max-w-2xl mx-auto space-y-6">
         
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-bold text-slate-800">👋 สวัสดี, {{ student[3] }}</h1>
-                <p class="text-xs text-slate-500">รหัสนักเรียน: <span class="font-semibold text-indigo-600">{{ student[1] }}</span></p>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                {% if s[9] %}
+                    <img src="/static/uploads/{{ s[9] }}" class="w-16 h-16 rounded-full object-cover border-2 border-indigo-500">
+                {% else %}
+                    <div class="w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xl">
+                        {{ s[3][0] }}
+                    </div>
+                {% endif %}
+                <div>
+                    <h1 class="text-xl font-bold text-slate-800">{{ s[3] }}</h1>
+                    <p class="text-xs text-slate-500">รหัสนักเรียน: <span class="font-semibold text-indigo-600">{{ s[1] }}</span></p>
+                    <span class="inline-block mt-1 text-[11px] px-2.5 py-0.5 rounded-full font-medium 
+                        {% if s[10] == 'อนุมัติแล้ว' %}bg-emerald-100 text-emerald-700
+                        {% elif s[10] == 'ต้องแก้ไข' %}bg-rose-100 text-rose-700
+                        {% else %}bg-amber-100 text-amber-700{% endif %}">
+                        สถานะ: {{ s[10] or 'รอตรวจสอบ' }}
+                    </span>
+                </div>
             </div>
-            <a href="/logout" class="bg-red-50 text-red-600 hover:bg-red-100 text-xs py-2 px-3 rounded-xl font-medium transition">
-                🚪 ออกจากระบบ
-            </a>
+            <div class="flex gap-2">
+                <a href="/change_password" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 px-3 rounded-xl font-medium transition">🔑 เปลี่ยนรหัสผ่าน</a>
+                <a href="/logout" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs py-2 px-3 rounded-xl font-medium transition">🚪 ออกจากระบบ</a>
+            </div>
         </div>
 
+        {% if bmi %}
+        <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-5 rounded-2xl shadow-sm flex justify-between items-center">
+            <div>
+                <p class="text-xs opacity-80">ค่าดัชนีมวลกาย (BMI)</p>
+                <div class="text-3xl font-bold">{{ bmi }}</div>
+            </div>
+            <div class="text-right">
+                <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-medium">{{ bmi_text }}</span>
+                <p class="text-[11px] opacity-75 mt-1">ส่วนสูง: {{ s[7] }} ซม. | น้ำหนัก: {{ s[8] }} กก.</p>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-            <h2 class="text-lg font-semibold text-slate-700 border-b pb-2">📋 กรอก/แก้ไขข้อมูลส่วนตัว</h2>
+            <h2 class="text-lg font-semibold text-slate-700 border-b pb-2">📋 แก้ไขข้อมูลส่วนตัว & ร่างกาย</h2>
             
-            <form action="/student/update" method="POST" class="space-y-4">
+            <form action="/student/update" method="POST" enctype="multipart/form-data" class="space-y-4">
                 <div>
-                    <label class="block text-xs text-slate-500 mb-1">ชื่อ-นามสกุล</label>
-                    <input type="text" name="fullname" value="{{ student[3] }}" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs text-slate-500 mb-1">รูปถ่ายโปรไฟล์</label>
+                    <input type="file" name="profile_img" accept="image/*" class="w-full text-xs bg-slate-50 p-2 border rounded-xl">
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-500 mb-1">ระดับชั้น / ห้อง</label>
-                    <input type="text" name="grade" value="{{ student[4] or '' }}" placeholder="เช่น ม.6/1" class="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs text-slate-500 mb-1">ชื่อ-นามสกุล</label>
+                    <input type="text" name="fullname" value="{{ s[3] }}" required class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm outline-none">
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">ระดับชั้น/ห้อง</label>
+                        <input type="text" name="grade" value="{{ s[4] or '' }}" placeholder="ม.6/1" class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">ส่วนสูง (ซม.)</label>
+                        <input type="number" step="0.1" name="height" value="{{ s[7] or '' }}" placeholder="170" class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">น้ำหนัก (กก.)</label>
+                        <input type="number" step="0.1" name="weight" value="{{ s[8] or '' }}" placeholder="60" class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm outline-none">
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs text-slate-500 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
-                    <input type="text" name="phone" value="{{ student[5] or '' }}" placeholder="08X-XXX-XXXX" class="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="text" name="phone" value="{{ s[5] or '' }}" placeholder="08X-XXX-XXXX" class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm outline-none">
                 </div>
                 <div>
                     <label class="block text-xs text-slate-500 mb-1">ที่อยู่ปัจจุบัน</label>
-                    <textarea name="address" rows="3" placeholder="บ้านเลขที่ ถนน ซอย ตำบล..." class="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500">{{ student[6] or '' }}</textarea>
+                    <textarea name="address" rows="2" class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm outline-none">{{ s[6] or '' }}</textarea>
                 </div>
                 
                 <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition shadow-sm">
                     💾 บันทึกข้อมูล
                 </button>
             </form>
-            
-            {% if student[7] %}
-            <p class="text-right text-[10px] text-slate-400">อัปเดตล่าสุดเมื่อ: {{ student[7] }}</p>
-            {% endif %}
         </div>
 
     </div>
 </body>
-</html>
+    </html>
+    
