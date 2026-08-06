@@ -2,10 +2,15 @@ import os
 import sqlite3
 import io
 import csv
-import math
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, Response, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
+
+# เรียกใช้ requests แบบปลอดภัย (ไม่พังแม้ไม่ได้ลงแพ็กเกจ)
+try:
+    import requests
+except ImportError:
+    requests = None
 
 app = Flask(__name__)
 app.secret_key = 'darkwick_super_secret_key_2026'
@@ -15,16 +20,15 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ค่ากำหนดสำหรับครู และ LINE Token (หากต้องการใช้งาน)
 TEACHER_USER = "admin"
 TEACHER_PASS_HASH = generate_password_hash("1234")
-LINE_NOTIFY_TOKEN = ""  # ใส่ Token LINE Notify หากต้องการเปิดใช้งาน
+LINE_NOTIFY_TOKEN = ""
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def send_line_notify(message):
-    if not LINE_NOTIFY_TOKEN:
+    if not LINE_NOTIFY_TOKEN or requests is None:
         return
     url = 'https://notify-api.line.me/api/notify'
     headers = {'Authorization': f'Bearer {LINE_NOTIFY_TOKEN}'}
@@ -36,8 +40,6 @@ def send_line_notify(message):
 def init_db():
     conn = sqlite3.connect('students.db')
     c = conn.cursor()
-    
-    # ตารางนักเรียน
     c.execute('''
         CREATE TABLE IF NOT EXISTS students (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,8 +57,6 @@ def init_db():
             updated_at TEXT
         )
     ''')
-    
-    # ตารางประวัติน้ำหนักส่วนสูง
     c.execute('''
         CREATE TABLE IF NOT EXISTS height_weight_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,8 +66,6 @@ def init_db():
             recorded_at TEXT
         )
     ''')
-    
-    # ตารางประกาศข่าวสาร
     c.execute('''
         CREATE TABLE IF NOT EXISTS announcements (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,13 +74,11 @@ def init_db():
             created_at TEXT NOT NULL
         )
     ''')
-    
     conn.commit()
     conn.close()
 
 init_db()
 
-# ---- Authentication Routes ----
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -143,7 +139,6 @@ def logout():
     flash('ออกจากระบบเรียบร้อยแล้ว', 'info')
     return redirect(url_for('login'))
 
-# ---- Student Routes ----
 @app.route('/student')
 def student_profile():
     if session.get('role') != 'student':
@@ -170,7 +165,6 @@ def student_profile():
     announcements = c.fetchall()
     conn.close()
     
-    # คำนวณ BMI
     bmi, bmi_text = None, "-"
     if len(s) > 8 and s[7] and s[8]:
         try:
@@ -267,7 +261,6 @@ def verify_student(student_id):
     conn.close()
     return render_template('verify.html', s=s)
 
-# ---- Teacher Routes ----
 @app.route('/teacher')
 def teacher_dashboard():
     if session.get('role') != 'teacher':
@@ -275,15 +268,12 @@ def teacher_dashboard():
 
     conn = sqlite3.connect('students.db')
     c = conn.cursor()
-    
     c.execute("SELECT * FROM students ORDER BY id DESC")
     students = c.fetchall()
 
-    # สถิติสถานะ
     c.execute("SELECT status, COUNT(*) FROM students GROUP BY status")
     status_counts = dict(c.fetchall())
 
-    # สถิติ BMI
     bmi_stats = {'ผอม': 0, 'ปกติ': 0, 'ท้วม': 0, 'อ้วน': 0}
     for st in students:
         if len(st) > 8 and st[7] and st[8]:
@@ -302,62 +292,6 @@ def teacher_dashboard():
     conn.close()
     return render_template('teacher_dashboard.html', students=students, status_counts=status_counts, bmi_stats=bmi_stats)
 
-@app.route('/teacher/import_csv', methods=['POST'])
-def import_csv():
-    if session.get('role') != 'teacher':
-        return redirect(url_for('login'))
-        
-    file = request.files.get('file')
-    if not file or not file.filename.endswith('.csv'):
-        flash('กรุณาอัปโหลดไฟล์ CSV ที่ถูกต้อง', 'error')
-        return redirect(url_for('teacher_dashboard'))
-
-    stream = io.StringIO(file.stream.read().decode("UTF-8"), newline=None)
-    csv_input = csv.reader(stream)
-    header = next(csv_input, None) # ข้าม Header
-
-    conn = sqlite3.connect('students.db')
-    c = conn.cursor()
-    count = 0
-    
-    default_pass_hash = generate_password_hash("123456")
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    for row in csv_input:
-        if len(row) >= 2:
-            st_id, name = row[0].strip(), row[1].strip()
-            grade = row[2].strip() if len(row) > 2 else ''
-            try:
-                c.execute("INSERT INTO students (student_id, password, fullname, grade, updated_at) VALUES (?, ?, ?, ?, ?)",
-                          (st_id, default_pass_hash, name, grade, now_str))
-                count += 1
-            except sqlite3.IntegrityError:
-                pass
-
-    conn.commit()
-    conn.close()
-    flash(f'นำเข้าข้อมูลนักเรียนสำเร็จ {count} รายการ (รหัสผ่านเริ่มต้น: 123456)', 'success')
-    return redirect(url_for('teacher_dashboard'))
-
-@app.route('/teacher/announcement', methods=['POST'])
-def add_announcement():
-    if session.get('role') != 'teacher':
-        return redirect(url_for('login'))
-        
-    title = request.form.get('title')
-    content = request.form.get('content')
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-    
-    conn = sqlite3.connect('students.db')
-    c = conn.cursor()
-    c.execute("INSERT INTO announcements (title, content, created_at) VALUES (?, ?, ?)", (title, content, now_str))
-    conn.commit()
-    conn.close()
-    
-    send_line_notify(f"\n📢 ประกาศใหม่จากโรงเรียน!\nหัวข้อ: {title}\nรายละเอียด: {content}")
-    flash('เพิ่มประกาศเรียบร้อยแล้ว', 'success')
-    return redirect(url_for('teacher_dashboard'))
-
 if __name__ == '__main__':
     app.run(debug=True)
-    
+                
