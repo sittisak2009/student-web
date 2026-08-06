@@ -12,6 +12,19 @@
 <body class="bg-slate-100 min-h-screen p-4 md:p-8">
     <div class="max-w-7xl mx-auto space-y-6">
         
+        <!-- Flash Alert -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="p-4 rounded-xl text-xs font-medium border shadow-sm
+                  {% if category == 'success' %}bg-emerald-50 text-emerald-700 border-emerald-200
+                  {% else %}bg-sky-50 text-sky-700 border-sky-200{% endif %}">
+                  {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
         <!-- Header -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
@@ -24,7 +37,7 @@
             </div>
         </div>
 
-        <!-- Analytics & Chart -->
+        <!-- Analytics & Controls -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-center items-center">
                 <h3 class="text-xs font-semibold text-slate-400 uppercase mb-2">สถิติสถานะการตรวจสอบ</h3>
@@ -33,7 +46,6 @@
                 </div>
             </div>
 
-            <!-- Filter & Search Controls -->
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 md:col-span-2 space-y-4">
                 <h2 class="text-base font-semibold text-slate-700">🔍 กรองและค้นหาข้อมูลนักเรียน</h2>
                 <form action="/teacher" method="GET" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -52,8 +64,8 @@
             </div>
         </div>
 
-        <!-- Student Data Table -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-x-auto">
+        <!-- Student Table -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-x-auto space-y-4">
             <table class="w-full text-left text-sm border-collapse">
                 <thead>
                     <tr class="border-b text-slate-400 text-xs uppercase bg-slate-50">
@@ -62,8 +74,7 @@
                         <th class="p-3">ชื่อ-นามสกุล</th>
                         <th class="p-3">ห้อง</th>
                         <th class="p-3">ส่วนสูง/น้ำหนัก</th>
-                        <th class="p-3">เบอร์โทร</th>
-                        <th class="p-3">สถานะตรวจ</th>
+                        <th class="p-3">สถานะตรวจ & หมายเหตุ</th>
                         <th class="p-3 text-center">จัดการ</th>
                     </tr>
                 </thead>
@@ -81,14 +92,11 @@
                         <td class="p-3 font-medium text-slate-800">{{ s[3] }}</td>
                         <td class="p-3 text-slate-600">{{ s[4] or '-' }}</td>
                         <td class="p-3 text-xs text-slate-500">
-                            {% if s[7] and s[8] %}
-                                {{ s[7] }} cm / {{ s[8] }} kg
-                            {% else %}-{% endif %}
+                            {% if s[7] and s[8] %}{{ s[7] }} cm / {{ s[8] }} kg{% else %}-{% endif %}
                         </td>
-                        <td class="p-3 text-slate-600 text-xs">{{ s[5] or '-' }}</td>
                         <td class="p-3">
-                            <form action="/teacher/update_status/{{ s[0] }}" method="POST">
-                                <select name="status" onchange="this.form.submit()" class="text-xs p-1.5 rounded-lg border font-medium outline-none
+                            <form action="/teacher/update_status/{{ s[0] }}" method="POST" class="space-y-1">
+                                <select name="status" class="text-xs p-1.5 rounded-lg border font-medium outline-none
                                     {% if s[10] == 'อนุมัติแล้ว' %}bg-emerald-50 text-emerald-700 border-emerald-200
                                     {% elif s[10] == 'ต้องแก้ไข' %}bg-rose-50 text-rose-700 border-rose-200
                                     {% else %}bg-amber-50 text-amber-700 border-amber-200{% endif %}">
@@ -96,6 +104,10 @@
                                     <option value="อนุมัติแล้ว" {% if s[10] == 'อนุมัติแล้ว' %}selected{% endif %}>✅ อนุมัติแล้ว</option>
                                     <option value="ต้องแก้ไข" {% if s[10] == 'ต้องแก้ไข' %}selected{% endif %}>❌ ต้องแก้ไข</option>
                                 </select>
+                                <div class="flex gap-1">
+                                    <input type="text" name="note" value="{{ s[11] or '' }}" placeholder="หมายเหตุแก้ไข..." class="text-[11px] p-1 border rounded bg-slate-50 w-36 outline-none">
+                                    <button type="submit" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-[10px] px-2 rounded">บันทึก</button>
+                                </div>
                             </form>
                         </td>
                         <td class="p-3 text-center">
@@ -103,10 +115,25 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="8" class="p-6 text-center text-slate-400">ไม่พบข้อมูลนักเรียน</td></tr>
+                    <tr><td colspan="7" class="p-6 text-center text-slate-400">ไม่พบข้อมูลนักเรียน</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+            <div class="flex justify-between items-center pt-4 border-t text-xs">
+                <span class="text-slate-500">หน้า {{ page }} จาก {{ total_pages }}</span>
+                <div class="flex gap-1">
+                    {% if page > 1 %}
+                        <a href="/teacher?page={{ page - 1 }}&search={{ search }}&grade={{ selected_grade }}" class="px-3 py-1 bg-slate-100 rounded hover:bg-slate-200">ก่อนหน้า</a>
+                    {% endif %}
+                    {% if page < total_pages %}
+                        <a href="/teacher?page={{ page + 1 }}&search={{ search }}&grade={{ selected_grade }}" class="px-3 py-1 bg-slate-100 rounded hover:bg-slate-200">ถัดไป</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </div>
 
     </div>
@@ -131,4 +158,4 @@
     </script>
 </body>
     </html>
-                                        
+                            
