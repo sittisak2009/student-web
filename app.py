@@ -79,6 +79,10 @@ def init_db():
 
 init_db()
 
+@app.route('/')
+def index():
+    return redirect(url_for('login'))
+    
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
