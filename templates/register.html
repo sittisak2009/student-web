@@ -9,19 +9,16 @@
     <style> body { font-family: 'Kanit', sans-serif; } </style>
 </head>
 <body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
-
     <div class="bg-white p-8 rounded-3xl shadow-lg border border-slate-200 w-full max-w-md space-y-6">
-        
-        <div class="text-center space-y-1">
-            <h1 class="text-2xl font-bold text-slate-800">📝 ลงทะเบียนนักเรียนใหม่</h1>
-            <p class="text-slate-500 text-xs">สร้างบัญชีสำหรับเข้าใช้งานระบบ</p>
+        <div class="text-center">
+            <h1 class="text-2xl font-bold text-slate-800">📝 ลงทะเบียนนักเรียน</h1>
+            <p class="text-xs text-slate-500 mt-1">สร้างบัญชีสำหรับนักเรียนใหม่</p>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             {% for category, message in messages %}
-              <div class="p-3.5 rounded-xl text-xs font-medium border text-center
-                  {% if category == 'error' %}bg-rose-50 text-rose-700 border-rose-200{% endif %}">
+              <div class="p-3 rounded-xl text-xs font-medium text-center bg-rose-50 text-rose-700 border border-rose-200">
                   {{ message }}
               </div>
             {% endfor %}
@@ -30,30 +27,28 @@
 
         <form action="/register" method="POST" class="space-y-4">
             <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">เลขประจำตัวนักเรียน</label>
-                <input type="text" name="student_id" required placeholder="เช่น 66001" class="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none">
+                <label class="block text-xs font-medium text-slate-600 mb-1">รหัสนักเรียน</label>
+                <input type="text" name="student_id" placeholder="เช่น 6601001" required class="w-full p-3 bg-slate-50 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
 
             <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">ชื่อ-นามสกุล</label>
-                <input type="text" name="fullname" required placeholder="นายสมชาย ใจดี" class="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none">
+                <input type="text" name="fullname" placeholder="นายสมชาย ใจดี" required class="w-full p-3 bg-slate-50 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
 
             <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">ตั้งรหัสผ่าน</label>
-                <input type="password" name="password" required placeholder="••••••••" class="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none">
+                <label class="block text-xs font-medium text-slate-600 mb-1">รหัสผ่าน</label>
+                <input type="password" name="password" placeholder="ตั้งรหัสผ่านสำหรับเข้าสู่ระบบ" required class="w-full p-3 bg-slate-50 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
 
-            <button type="submit" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition shadow-md">
-                ยืนยันการลงทะเบียน
+            <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition shadow-md">
+                ยืนยันลงทะเบียน
             </button>
         </form>
 
-        <div class="text-center border-t pt-4">
-            <a href="/login" class="text-xs text-slate-500 hover:underline">← กลับไปหน้าเข้าสู่ระบบ</a>
+        <div class="text-center pt-2">
+            <a href="/login" class="text-xs text-slate-500 hover:underline">← ย้อนกลับไปหน้าเข้าสู่ระบบ</a>
         </div>
-
     </div>
-
 </body>
 </html>
