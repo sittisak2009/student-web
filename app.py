@@ -270,6 +270,37 @@ def update_status(student_id):
     flash(f'อัปเดตสถานะนักเรียนรหัส {student_id} เรียบร้อยแล้ว', 'success')
     return redirect(url_for('teacher_dashboard'))
 
+@app.route('/teacher/delete/<student_id>', methods=['POST'])
+def teacher_delete_student(student_id):
+    if session.get('role') != 'teacher':
+        return redirect(url_for('login'))
+
+    conn = get_db()
+    c = conn.cursor()
+
+    # 1. ค้นหาและลบไฟล์รูปภาพโปรไฟล์ออกจากเซิร์ฟเวอร์ (ถ้ามี)
+    c.execute("SELECT profile_img FROM students WHERE student_id = ?", (student_id,))
+    s = c.fetchone()
+    if s and s['profile_img']:
+        img_path = os.path.join(app.config['UPLOAD_FOLDER'], s['profile_img'])
+        if os.path.exists(img_path):
+            try:
+                os.remove(img_path)
+            except Exception:
+                pass
+
+    # 2. ลบประวัติส่วนสูง-น้ำหนักของนักเรียน
+    c.execute("DELETE FROM height_weight_history WHERE student_id = ?", (student_id,))
+    
+    # 3. ลบบัญชีนักเรียนออกจากฐานข้อมูล
+    c.execute("DELETE FROM students WHERE student_id = ?", (student_id,))
+    
+    conn.commit()
+    conn.close()
+
+    flash(f'ลบโปรไฟล์นักเรียนรหัส {student_id} เรียบร้อยแล้ว', 'success')
+    return redirect(url_for('teacher_dashboard'))
+    
 if __name__ == '__main__':
     app.run(debug=True)
             
