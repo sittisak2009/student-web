@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แดชบอร์ดข้อมูลนักเรียนสำหรับครู</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Kanit', sans-serif; } </style>
+</head>
+<body class="bg-slate-100 min-h-screen p-4 md:p-8">
+    <div class="max-w-6xl mx-auto space-y-6">
+        
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">👨‍🏫 แดชบอร์ดจัดการข้อมูลนักเรียน (สำหรับครู)</h1>
+                <p class="text-slate-500 text-sm">ดูข้อมูลที่นักเรียนกรอกเข้ามาทั้งหมด</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-50 border border-indigo-100 p-2.5 px-4 rounded-xl text-center">
+                    <span class="text-xs text-indigo-500 font-medium">นักเรียนทั้งหมด</span>
+                    <div class="text-lg font-bold text-indigo-600">{{ total }} คน</div>
+                </div>
+                <a href="/export" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-3 px-3.5 rounded-xl font-medium transition shadow-sm">
+                    📥 โหลด Excel (CSV)
+                </a>
+                <a href="/logout" class="bg-slate-200 hover:bg-red-500 hover:text-white text-slate-700 text-xs py-3 px-3.5 rounded-xl font-medium transition">
+                    🚪 ออกจากระบบ
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            <form action="/teacher" method="GET" class="flex gap-2">
+                <input type="text" name="search" value="{{ search }}" placeholder="🔍 ค้นหาด้วยรหัส หรือชื่อนักเรียน..." class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-400 text-sm">
+                <button type="submit" class="bg-slate-800 text-white text-sm px-4 rounded-xl hover:bg-slate-700">ค้นหา</button>
+                {% if search %}
+                    <a href="/teacher" class="bg-slate-200 text-slate-600 text-sm px-3 py-2.5 rounded-xl hover:bg-slate-300">ล้าง</a>
+                {% endif %}
+            </form>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="border-b text-slate-400 text-xs uppercase bg-slate-50">
+                            <th class="p-3">รหัสนักเรียน</th>
+                            <th class="p-3">ชื่อ-นามสกุล</th>
+                            <th class="p-3">ชั้นเรียน</th>
+                            <th class="p-3">เบอร์โทร</th>
+                            <th class="p-3">ที่อยู่</th>
+                            <th class="p-3">อัปเดตล่าสุด</th>
+                            <th class="p-3 text-center">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for s in students %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-3 font-semibold text-indigo-600">{{ s[1] }}</td>
+                            <td class="p-3 text-slate-700 font-medium">{{ s[3] }}</td>
+                            <td class="p-3 text-slate-600">{{ s[4] or '-' }}</td>
+                            <td class="p-3 text-slate-600">{{ s[5] or '-' }}</td>
+                            <td class="p-3 text-slate-600 text-xs">{{ s[6] or '-' }}</td>
+                            <td class="p-3 text-xs text-slate-400">{{ s[7] or '-' }}</td>
+                            <td class="p-3 text-center">
+                                <a href="/delete/{{ s[0] }}" onclick="return confirm('ยืนยันการลบนักเรียนคนนี้?')" class="text-red-500 hover:text-red-700 text-xs font-medium bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg">
+                                    ลบ
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="p-6 text-center text-slate-400">ยังไม่มีข้อมูลนักเรียนลงทะเบียน</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
