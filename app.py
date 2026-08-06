@@ -79,10 +79,11 @@ def init_db():
 
 init_db()
 
+# --- เพิ่มส่วนนี้: เข้าลิงก์หลักแล้วเด้งไปหน้า Login ทันที ---
 @app.route('/')
 def index():
     return redirect(url_for('login'))
-    
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -298,4 +299,3 @@ def teacher_dashboard():
 
 if __name__ == '__main__':
     app.run(debug=True)
-                
