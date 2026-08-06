@@ -50,15 +50,23 @@
                                 </span>
                             </td>
                             <td class="p-3">
-                                <form action="/teacher/status/{{ st['student_id'] }}" method="POST" class="flex gap-2">
-                                    <select name="status" class="bg-slate-50 border rounded-lg p-1 text-[11px]">
-                                        <option value="อนุมัติแล้ว" {% if st['status'] == 'อนุมัติแล้ว' %}selected{% endif %}>อนุมัติ</option>
-                                        <option value="ให้แก้ไข" {% if st['status'] == 'ให้แก้ไข' %}selected{% endif %}>ให้แก้ไข</option>
-                                        <option value="รอตรวจสอบ" {% if st['status'] == 'รอตรวจสอบ' %}selected{% endif %}>รอตรวจสอบ</option>
-                                    </select>
-                                    <button type="submit" class="bg-indigo-600 text-white px-2.5 py-1 rounded-lg text-[11px]">บันทึก</button>
-                                </form>
-                            </td>
+                               <div class="flex items-center gap-2">
+                                   <form action="/teacher/status/{{ st['student_id'] }}" method="POST" class="flex gap-1">
+                                       <select name="status" class="bg-slate-50 border rounded-lg p-1 text-[11px]">
+                                           <option value="อนุมัติแล้ว" {% if st['status'] == 'อนุมัติแล้ว' %}selected{% endif %}>อนุมัติ</option>
+                                           <option value="ให้แก้ไข" {% if st['status'] == 'ให้แก้ไข' %}selected{% endif %}>ให้แก้ไข</option>
+                                           <option value="รอตรวจสอบ" {% if st['status'] == 'รอตรวจสอบ' %}selected{% endif %}>รอตรวจสอบ</option>
+                                       </select>
+                                       <button type="submit" class="bg-indigo-600 text-white px-2.5 py-1 rounded-lg text-[11px]">บันทึก</button>
+                                   </form>
+
+                                   <form action="{{ url_for('teacher_delete_student', student_id=st['student_id']) }}" method="POST" onsubmit="return confirm('คุณแน่ใจหรือไม่ว่าต้องการลบนักเรียนรหัส {{ st['student_id'] }} ออกจากระบบ?');">
+                                       <button type="submit" class="bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 px-2.5 py-1 rounded-lg text-[11px] transition">
+                                           🗑️ ลบ
+                                       </button>
+                                   </form>
+                               </div>
+                            </td> 
                         </tr>
                         {% else %}
                         <tr>
