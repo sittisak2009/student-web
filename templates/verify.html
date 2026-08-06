@@ -15,10 +15,10 @@
             <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✓</div>
             <h1 class="text-lg font-bold text-slate-800">บัตรนักเรียนถูกต้อง</h1>
             <div class="bg-slate-50 p-4 rounded-2xl text-xs space-y-2 text-left border">
-                <p><strong class="text-slate-600">ชื่อ-นามสกุล:</strong> {{ s[1] }}</p>
-                <p><strong class="text-slate-600">รหัสนักเรียน:</strong> {{ s[0] }}</p>
-                <p><strong class="text-slate-600">ชั้นเรียน:</strong> {{ s[2] or '-' }}</p>
-                <p><strong class="text-slate-600">สถานะในระบบ:</strong> <span class="text-emerald-600 font-semibold">{{ s[3] }}</span></p>
+                <p><strong class="text-slate-600">ชื่อ-นามสกุล:</strong> {{ s['fullname'] }}</p>
+                <p><strong class="text-slate-600">รหัสนักเรียน:</strong> {{ s['student_id'] }}</p>
+                <p><strong class="text-slate-600">ชั้นเรียน:</strong> {{ s['grade'] or '-' }}</p>
+                <p><strong class="text-slate-600">สถานะในระบบ:</strong> <span class="text-emerald-600 font-semibold">{{ s['status'] or 'รอตรวจสอบ' }}</span></p>
             </div>
         {% else %}
             <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✕</div>
