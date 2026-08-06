@@ -3,7 +3,6 @@ import sqlite3
 import io
 import csv
 import math
-import requests
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, Response, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
