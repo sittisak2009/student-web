@@ -23,7 +23,8 @@ def allowed_file(filename):
 def init_db():
     conn = sqlite3.connect('students.db')
     c = conn.cursor()
-    # ตารางหลักนักเรียน
+    
+    # ตารางนักเรียน
     c.execute('''
         CREATE TABLE IF NOT EXISTS students (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,6 +42,7 @@ def init_db():
             updated_at TEXT
         )
     ''')
+    
     # ตารางประวัติน้ำหนักส่วนสูง
     c.execute('''
         CREATE TABLE IF NOT EXISTS height_weight_history (
@@ -52,7 +54,7 @@ def init_db():
         )
     ''')
     
-    # เช็คและเพิ่มคอลัมน์สะสม
+    # ตรวจสอบและอัปเดตโครงสร้างคอลัมน์อัตโนมัติ
     c.execute("PRAGMA table_info(students)")
     cols = [col[1] for col in c.fetchall()]
     if 'height' not in cols: c.execute("ALTER TABLE students ADD COLUMN height REAL")
@@ -60,6 +62,8 @@ def init_db():
     if 'profile_img' not in cols: c.execute("ALTER TABLE students ADD COLUMN profile_img TEXT")
     if 'status' not in cols: c.execute("ALTER TABLE students ADD COLUMN status TEXT DEFAULT 'รอตรวจสอบ'")
     if 'note' not in cols: c.execute("ALTER TABLE students ADD COLUMN note TEXT")
+    if 'updated_at' not in cols: c.execute("ALTER TABLE students ADD COLUMN updated_at TEXT")
+    
     conn.commit()
     conn.close()
 
@@ -156,21 +160,30 @@ def student_profile():
     c.execute("SELECT * FROM students WHERE student_id = ?", (session.get('student_id'),))
     s = c.fetchone()
 
-    # ดึงประวัติส่วนสูงน้ำหนัก
-    c.execute("SELECT height, weight, recorded_at FROM height_weight_history WHERE student_id = ? ORDER BY id DESC LIMIT 5", (session.get('student_id'),))
-    history = c.fetchall()
+    # ดึงประวัติส่วนสูงน้ำหนักอย่างปลอดภัย
+    history = []
+    try:
+        c.execute("SELECT height, weight, recorded_at FROM height_weight_history WHERE student_id = ? ORDER BY id DESC LIMIT 5", (session.get('student_id'),))
+        history = c.fetchall()
+    except Exception:
+        pass
     conn.close()
     
     # คำนวณ BMI
     bmi, bmi_text = None, "-"
     if s and s[7] and s[8]:
-        h_m = s[7] / 100
-        bmi = round(s[8] / (h_m * h_m), 2)
-        if bmi < 18.5: bmi_text = "ผอมเกินไป"
-        elif bmi < 23.0: bmi_text = "ปกติ / สมส่วน"
-        elif bmi < 25.0: bmi_text = "ท้วม / เริ่มอ้วน"
-        elif bmi < 30.0: bmi_text = "อ้วนระดับ 1"
-        else: bmi_text = "อ้วนระดับ 2"
+        try:
+            h_m = float(s[7]) / 100
+            w = float(s[8])
+            if h_m > 0:
+                bmi = round(w / (h_m * h_m), 2)
+                if bmi < 18.5: bmi_text = "ผอมเกินไป"
+                elif bmi < 23.0: bmi_text = "ปกติ / สมส่วน"
+                elif bmi < 25.0: bmi_text = "ท้วม / เริ่มอ้วน"
+                elif bmi < 30.0: bmi_text = "อ้วนระดับ 1"
+                else: bmi_text = "อ้วนระดับ 2"
+        except (ValueError, TypeError):
+            pass
 
     return render_template('student_profile.html', s=s, bmi=bmi, bmi_text=bmi_text, history=history)
 
@@ -186,6 +199,7 @@ def update_student():
     
     height_raw = request.form.get('height')
     weight_raw = request.form.get('weight')
+    
     height = float(height_raw) if height_raw and height_raw.strip() else None
     weight = float(weight_raw) if weight_raw and weight_raw.strip() else None
     
@@ -199,7 +213,7 @@ def update_student():
                 ext = file.filename.rsplit('.', 1)[1].lower()
                 img_filename = f"{session.get('student_id')}_{int(datetime.now().timestamp())}.{ext}"
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], img_filename))
-            except Exception as e:
+            except Exception:
                 img_filename = None
 
     conn = sqlite3.connect('students.db')
@@ -218,10 +232,13 @@ def update_student():
             WHERE student_id=?
         ''', (fullname, grade, phone, address, height, weight, now_str, session.get('student_id')))
 
-    # บันทึกลงประวัติการเติบโต
-    if height or weight:
-        c.execute("INSERT INTO height_weight_history (student_id, height, weight, recorded_at) VALUES (?, ?, ?, ?)",
-                  (session.get('student_id'), height, weight, now_str))
+    # บันทึกลงตารางประวัติอย่างปลอดภัย
+    try:
+        if height or weight:
+            c.execute("INSERT INTO height_weight_history (student_id, height, weight, recorded_at) VALUES (?, ?, ?, ?)",
+                      (session.get('student_id'), height, weight, now_str))
+    except Exception:
+        pass
 
     conn.commit()
     conn.close()
@@ -255,7 +272,6 @@ def teacher_dashboard():
     conn = sqlite3.connect('students.db')
     c = conn.cursor()
     
-    # Base query
     query = "FROM students WHERE 1=1"
     params = []
     
@@ -266,21 +282,17 @@ def teacher_dashboard():
         query += " AND grade = ?"
         params.append(selected_grade)
 
-    # นับจำนวนทั้งหมดเพื่อทำ Pagination
     c.execute(f"SELECT COUNT(*) {query}", params)
     total_count = c.fetchone()[0]
     total_pages = math.ceil(total_count / per_page) or 1
 
-    # ดึงข้อมูลแบบจำกัดจำนวนหน้า
     offset = (page - 1) * per_page
     c.execute(f"SELECT * {query} ORDER BY id DESC LIMIT ? OFFSET ?", params + [per_page, offset])
     students = c.fetchall()
 
-    # ดึงห้องเรียน
     c.execute("SELECT DISTINCT grade FROM students WHERE grade IS NOT NULL AND grade != ''")
     grades = [row[0] for row in c.fetchall()]
 
-    # สถิติกราฟ
     c.execute("SELECT status, COUNT(*) FROM students GROUP BY status")
     status_counts = dict(c.fetchall())
 
@@ -335,4 +347,4 @@ def export_csv():
 
 if __name__ == '__main__':
     app.run(debug=True)
-            
+                
