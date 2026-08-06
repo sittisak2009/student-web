@@ -9,38 +9,61 @@
     <style> body { font-family: 'Kanit', sans-serif; } </style>
 </head>
 <body class="bg-slate-100 min-h-screen p-4 md:p-8">
-    <div class="max-w-2xl mx-auto space-y-6">
+    <div class="max-w-2xl mx-auto space-y-5">
         
+        <!-- Flash Alert -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="p-4 rounded-xl text-xs font-medium border shadow-sm
+                  {% if category == 'success' %}bg-emerald-50 text-emerald-700 border-emerald-200
+                  {% elif category == 'error' %}bg-rose-50 text-rose-700 border-rose-200
+                  {% else %}bg-sky-50 text-sky-700 border-sky-200{% endif %}">
+                  {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Header -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-4">
                 {% if s[9] %}
                     <img src="/static/uploads/{{ s[9] }}" class="w-16 h-16 rounded-full object-cover border-2 border-indigo-500">
                 {% else %}
-                    <div class="w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xl">
-                        {{ s[3][0] }}
-                    </div>
+                    <div class="w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xl">{{ s[3][0] }}</div>
                 {% endif %}
                 <div>
                     <h1 class="text-xl font-bold text-slate-800">{{ s[3] }}</h1>
-                    <p class="text-xs text-slate-500">รหัสนักเรียน: <span class="font-semibold text-indigo-600">{{ s[1] }}</span></p>
+                    <p class="text-xs text-slate-500">รหัส: <span class="font-semibold text-indigo-600">{{ s[1] }}</span></p>
                     <span class="inline-block mt-1 text-[11px] px-2.5 py-0.5 rounded-full font-medium 
                         {% if s[10] == 'อนุมัติแล้ว' %}bg-emerald-100 text-emerald-700
                         {% elif s[10] == 'ต้องแก้ไข' %}bg-rose-100 text-rose-700
                         {% else %}bg-amber-100 text-amber-700{% endif %}">
-                        สถานะ: {{ s[10] or 'รอตรวจสอบ' }}
+                        {{ s[10] or 'รอตรวจสอบ' }}
                     </span>
                 </div>
             </div>
-            <div class="flex gap-2">
-                <a href="/change_password" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 px-3 rounded-xl font-medium transition">🔑 เปลี่ยนรหัสผ่าน</a>
-                <a href="/logout" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs py-2 px-3 rounded-xl font-medium transition">🚪 ออกจากระบบ</a>
+            <div class="flex flex-wrap gap-2">
+                <a href="/student/card" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs py-2 px-3 rounded-xl font-medium transition">💳 บัตรนักเรียน</a>
+                <a href="/change_password" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 px-3 rounded-xl font-medium transition">🔑 รหัสผ่าน</a>
+                <a href="/logout" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs py-2 px-3 rounded-xl font-medium transition">🚪 ออก</a>
             </div>
         </div>
 
+        <!-- Teacher Note Alert -->
+        {% if s[11] %}
+        <div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-2xl text-xs space-y-1">
+            <span class="font-bold flex items-center gap-1">📌 ข้อความจากครูผู้ดูแล:</span>
+            <p class="text-slate-700 pl-4">{{ s[11] }}</p>
+        </div>
+        {% endif %}
+
+        <!-- BMI Box -->
         {% if bmi %}
         <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-5 rounded-2xl shadow-sm flex justify-between items-center">
             <div>
-                <p class="text-xs opacity-80">ค่าดัชนีมวลกาย (BMI)</p>
+                <p class="text-xs opacity-80">ดัชนีมวลกาย (BMI)</p>
                 <div class="text-3xl font-bold">{{ bmi }}</div>
             </div>
             <div class="text-right">
@@ -50,8 +73,9 @@
         </div>
         {% endif %}
 
+        <!-- Update Form -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-            <h2 class="text-lg font-semibold text-slate-700 border-b pb-2">📋 แก้ไขข้อมูลส่วนตัว & ร่างกาย</h2>
+            <h2 class="text-base font-semibold text-slate-700 border-b pb-2">📋 แก้ไขข้อมูลส่วนตัว & ร่างกาย</h2>
             
             <form action="/student/update" method="POST" enctype="multipart/form-data" class="space-y-4">
                 <div>
@@ -77,21 +101,33 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-500 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
+                    <label class="block text-xs text-slate-500 mb-1">เบอร์โทรศัพท์</label>
                     <input type="text" name="phone" value="{{ s[5] or '' }}" placeholder="08X-XXX-XXXX" class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm outline-none">
                 </div>
                 <div>
                     <label class="block text-xs text-slate-500 mb-1">ที่อยู่ปัจจุบัน</label>
                     <textarea name="address" rows="2" class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm outline-none">{{ s[6] or '' }}</textarea>
                 </div>
-                
-                <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition shadow-sm">
-                    💾 บันทึกข้อมูล
-                </button>
+                <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition shadow-sm">💾 บันทึกข้อมูล</button>
             </form>
         </div>
 
+        <!-- History Table -->
+        {% if history %}
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+            <h3 class="text-xs font-semibold text-slate-500 uppercase">📈 ประวัติการบันทึกส่วนสูง-น้ำหนักล่าสุด</h3>
+            <div class="divide-y text-xs text-slate-600">
+                {% for h in history %}
+                <div class="py-2 flex justify-between items-center">
+                    <span>{{ h[2] }}</span>
+                    <span class="font-medium text-slate-800">สูง {{ h[0] or '-' }} ซม. / หนัก {{ h[1] or '-' }} กก.</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
     </div>
 </body>
-    </html>
-    
+                        </html>
+            
