@@ -6,6 +6,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = 'darkwick_system_key_2026'
+app.config['SESSION_COOKIE_SECURE'] = True  # บังคับให้ส่ง Cookie เฉพาะผ่าน HTTPS เท่านั้น (แนะนำให้เปิดใช้งานเมื่อขึ้น production ที่มี SSL แล้ว)
+app.config['SESSION_COOKIE_HTTPONLY'] = True # ป้องกันไม่ให้ JavaScript สามารถเข้าถึง Cookie ได้ ช่วยลดความเสี่ยงจากการโจรกรรม Session ผ่าน XSS
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # ป้องกันการโจมตีแบบ CSRF เบื้องต้น (สามารถปรับเป็น 'Strict' ได้ตามความเหมาะสม)
 
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
