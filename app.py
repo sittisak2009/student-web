@@ -300,6 +300,66 @@ def teacher_delete_student(student_id):
 
     flash(f'ลบโปรไฟล์นักเรียนรหัส {student_id} เรียบร้อยแล้ว', 'success')
     return redirect(url_for('teacher_dashboard'))
+# --- 1. ระบบค้นหาและกรอง (เพิ่มใน route ของ teacher) ---
+@app.route('/teacher')
+def teacher_dashboard():
+    if session.get('role') != 'teacher': return redirect(url_for('login'))
+    
+    search = request.args.get('search', '')
+    status = request.args.get('status', '')
+    
+    conn = get_db()
+    c = conn.cursor()
+    query = "SELECT * FROM students WHERE 1=1"
+    params = []
+    if search:
+        query += " AND (fullname LIKE ? OR student_id LIKE ?)"
+        params.extend([f"%{search}%", f"%{search}%"])
+    if status:
+        query += " AND status = ?"
+        params.append(status)
+        
+    c.execute(query + " ORDER BY id DESC", params)
+    students = c.fetchall()
+    conn.close()
+    return render_template('teacher_dashboard.html', students=students)
+
+# --- 2. หน้ารายละเอียดนักเรียน (สำหรับครู) ---
+@app.route('/teacher/student/<student_id>')
+def teacher_student_detail(student_id):
+    if session.get('role') != 'teacher': return redirect(url_for('login'))
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM students WHERE student_id = ?", (student_id,))
+    s = c.fetchone()
+    c.execute("SELECT * FROM height_weight_history WHERE student_id = ? ORDER BY id DESC", (student_id,))
+    history = c.fetchall()
+    conn.close()
+    return render_template('student_detail.html', s=s, history=history)
+
+# --- 3. ระบบเปลี่ยนรหัสผ่าน ---
+@app.route('/change_password', methods=['GET', 'POST'])
+def change_password():
+    if 'role' not in session: return redirect(url_for('login'))
+    if request.method == 'POST':
+        old_pass = request.form.get('old_pass')
+        new_pass = request.form.get('new_pass')
+        user_id = session.get('student_id') if session.get('role') == 'student' else 'admin'
+        
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT password FROM students WHERE student_id = ?", (user_id,))
+        s = c.fetchone()
+        
+        if s and check_password_hash(s['password'], old_pass):
+            c.execute("UPDATE students SET password = ? WHERE student_id = ?", 
+                      (generate_password_hash(new_pass), user_id))
+            conn.commit()
+            flash('เปลี่ยนรหัสผ่านสำเร็จ', 'success')
+        else:
+            flash('รหัสผ่านเดิมไม่ถูกต้อง', 'error')
+        conn.close()
+    return render_template('change_password.html')
     
 if __name__ == '__main__':
     app.run(debug=True)
