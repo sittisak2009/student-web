@@ -33,7 +33,21 @@
         หมุนลุ้นโชค!
     </button>
 </div>
-
+@app.route('/student/dashboard')
+def student_dashboard():
+    if session.get('role') != 'student': 
+        return redirect(url_for('login'))
+        
+    s_id = session.get('student_id')
+    
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM students WHERE student_id = ?", (s_id,))
+    s = c.fetchone() # ดึงข้อมูลล่าสุดของนักเรียนคนนี้
+    conn.close()
+    
+    return render_template('student_dashboard.html', s=s)
+        
 <script>
 function spinWheel() {
     const rewards = ['+10 แต้ม', 'แต้ม X2', 'สถานะพิเศษ', 'ลองใหม่พรุ่งนี้'];
