@@ -90,7 +90,64 @@ def init_db():
     conn.close()
 
 init_db()
-
+@app.route('/register', methods=['POST'])
+def register():
+    student_id = request.form.get('student_id')
+    fullname = request.form.get('fullname')
+    grade = request.form.get('grade')
+    height = request.form.get('height')
+    weight = request.form.get('weight')
+    
+    conn = get_db()
+    c = conn.cursor()
+    
+    # เช็คว่ามีรหัสนักเรียนนี้ในระบบหรือยัง
+    c.execute("SELECT * FROM students WHERE student_id = ?", (student_id,))
+    existing = c.fetchone()
+    
+    if existing:
+        # ถ้ามีแล้ว อัปเดตข้อมูลแทนการสร้างซ้ำ
+        c.execute("UPDATE students SET fullname=?, grade=?, height=?, weight=? WHERE student_id=?",
+                  (fullname, grade, height, weight, student_id))
+    else:
+        # ถ้ายังไม่มี ให้สร้างใหม่
+        c.execute("INSERT INTO students (student_id, fullname, grade, height, weight, status) VALUES (?, ?, ?, ?, ?, 'รอตรวจสอบ')",
+                  (student_id, fullname, grade, height, weight))
+        
+    conn.commit()
+    conn.close()
+    
+    # บันทึกสถานะการล็อกอินลง Session ทันที
+    session['role'] = 'student'
+    session['student_id'] = student_id
+    
+    return redirect(url_for('student_dashboard'))
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        student_id = request.form.get('student_id')
+        
+        # เช็คว่าเป็นครูไหม
+        if student_id == 'teacher123':  # หรือรหัสผ่านครูของคุณ
+            session['role'] = 'teacher'
+            return redirect(url_for('teacher_dashboard'))
+            
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM students WHERE student_id = ?", (student_id,))
+        student = c.fetchone()
+        conn.close()
+        
+        if student:
+            # เจอข้อมูลเดิม ล็อกอินสำเร็จโดยไม่ต้องลงทะเบียนใหม่!
+            session['role'] = 'student'
+            session['student_id'] = student['student_id']
+            return redirect(url_for('student_dashboard'))
+        else:
+            return "ไม่พบรหัสนักเรียนนี้ในระบบ กรุณาลงทะเบียนก่อนครับ"
+            
+    return render_template('login.html')
+    
 @app.route('/')
 def index():
     if session.get('role') == 'student':
