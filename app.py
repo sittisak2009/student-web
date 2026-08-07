@@ -3,6 +3,9 @@ import sqlite3
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
+import csv
+from io import StringIO
+from flask import make_response
 
 app = Flask(__name__)
 app.secret_key = 'darkwick_system_key_2026'
@@ -14,6 +17,26 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 TEACHER_USER = "admin"
 TEACHER_PASS_HASH = generate_password_hash("1234")
+# ฟังก์ชันคำนวณ BMI
+def calculate_bmi(weight, height):
+    if not weight or not height:
+        return "-", "ไม่ได้ระบุ"
+    try:
+        h_m = float(height) / 100
+        bmi = float(weight) / (h_m ** 2)
+        if bmi < 18.5:
+            return round(bmi, 1), "ผอม"
+        elif 18.5 <= bmi < 23:
+            return round(bmi, 1), "ปกติ (สมส่วน)"
+        elif 23 <= bmi < 25:
+            return round(bmi, 1), "ท้วม / น้ำหนักเกิน"
+        else:
+            return round(bmi, 1), "อ้วน"
+    except:
+        return "-", "คำนวณไม่ได้"
+
+# ทำให้ฟังก์ชัน BMI ใช้ใน Template ได้
+app.jinja_env.globals.update(calculate_bmi=calculate_bmi)
 
 def get_db():
     conn = sqlite3.connect('students.db')
@@ -287,6 +310,7 @@ def teacher_delete_student(student_id):
 
     flash(f'ลบโปรไฟล์นักเรียนรหัส {student_id} เรียบร้อยแล้ว', 'success')
     return redirect(url_for('teacher_dashboard'))
+    
 # --- 1. ระบบค้นหาและกรอง (เพิ่มใน route ของ teacher) ---
 @app.route('/teacher')
 def teacher_dashboard():
@@ -297,6 +321,21 @@ def teacher_dashboard():
     
     conn = get_db()
     c = conn.cursor()
+    
+    # 3. ดึงข้อมูลสถิติภาพรวม
+    c.execute("SELECT COUNT(*) as total FROM students")
+    total_students = c.fetchone()['total']
+    c.execute("SELECT COUNT(*) as total FROM students WHERE status = 'รอตรวจสอบ'")
+    pending_students = c.fetchone()['total']
+    c.execute("SELECT COUNT(*) as total FROM students WHERE status = 'อนุมัติแล้ว'")
+    approved_students = c.fetchone()['total']
+    
+    # 4. ดึงประกาศล่าสุด
+    c.execute("CREATE TABLE IF NOT EXISTS announcements (id INTEGER PRIMARY KEY AUTOINCREMENT, message TEXT)")
+    c.execute("SELECT * FROM announcements ORDER BY id DESC LIMIT 1")
+    announcement = c.fetchone()
+    
+    # ระบบค้นหาและกรอง
     query = "SELECT * FROM students WHERE 1=1"
     params = []
     if search:
@@ -309,7 +348,13 @@ def teacher_dashboard():
     c.execute(query + " ORDER BY id DESC", params)
     students = c.fetchall()
     conn.close()
-    return render_template('teacher_dashboard.html', students=students)
+    
+    return render_template('teacher_dashboard.html', 
+                           students=students, 
+                           total_students=total_students,
+                           pending_students=pending_students,
+                           approved_students=approved_students,
+                           announcement=announcement)
 
 # --- 2. หน้ารายละเอียดนักเรียน (สำหรับครู) ---
 @app.route('/teacher/student/<student_id>')
@@ -347,6 +392,40 @@ def change_password():
             flash('รหัสผ่านเดิมไม่ถูกต้อง', 'error')
         conn.close()
     return render_template('change_password.html')
+# 2. Route สำหรับดาวน์โหลดรายงาน CSV (เปิดใน Excel ได้)
+@app.route('/teacher/export')
+def export_csv():
+    if session.get('role') != 'teacher': return redirect(url_for('login'))
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT student_id, fullname, grade, height, weight, status FROM students")
+    students = c.fetchall()
+    conn.close()
+    
+    si = StringIO()
+    cw = csv.writer(si)
+    cw.writerow(['Student ID', 'Fullname', 'Grade', 'Height (cm)', 'Weight (kg)', 'Status'])
+    for s in students:
+        cw.writerow([s['student_id'], s['fullname'], s['grade'], s['height'], s['weight'], s['status']])
+    
+    output = make_response(si.getvalue())
+    output.headers["Content-Disposition"] = "attachment; filename=students_report.csv"
+    output.headers["Content-type"] = "text/csv; charset=utf-8"
+    return output
+
+# 4. Route สำหรับบันทึกประกาศ
+@app.route('/teacher/announcement', methods=['POST'])
+def post_announcement():
+    if session.get('role') != 'teacher': return redirect(url_for('login'))
+    msg = request.form.get('message')
+    if msg:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("CREATE TABLE IF NOT EXISTS announcements (id INTEGER PRIMARY KEY AUTOINCREMENT, message TEXT)")
+        c.execute("INSERT INTO announcements (message) VALUES (?)", (msg,))
+        conn.commit()
+        conn.close()
+    return redirect(url_for('teacher_dashboard'))
     
 if __name__ == '__main__':
     app.run(debug=True)
