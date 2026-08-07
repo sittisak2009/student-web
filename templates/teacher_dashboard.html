@@ -18,7 +18,17 @@
             </div>
             <a href="/logout" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-4 py-2 rounded-xl text-xs font-medium transition">ออกจากระบบ</a>
         </div>
-
+        <form method="GET" class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex gap-4">
+             <input type="text" name="search" placeholder="ค้นหาชื่อหรือรหัสนักเรียน..." class="flex-1 p-3 bg-slate-50 border rounded-xl text-xs">
+             <select name="status" class="p-3 bg-slate-50 border rounded-xl text-xs">
+                <option value="">ทุกสถานะ</option>
+                <option value="อนุมัติแล้ว">อนุมัติแล้ว</option>
+                <option value="ให้แก้ไข">ให้แก้ไข</option>
+                <option value="รอตรวจสอบ">รอตรวจสอบ</option>
+            </select>
+          <button type="submit" class="px-6 bg-indigo-600 text-white rounded-xl text-xs">ค้นหา</button>
+        </form>
+        
         <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
             <h2 class="text-sm font-bold text-slate-800">📋 รายชื่อนักเรียนทั้งหมด</h2>
 
