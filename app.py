@@ -156,38 +156,6 @@ def index():
         return redirect(url_for('teacher_dashboard'))
     return redirect(url_for('login'))
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        role = request.form.get('role')
-        username = request.form.get('username')
-        password = request.form.get('password')
-
-        if role == 'teacher':
-            if username == TEACHER_USER and check_password_hash(TEACHER_PASS_HASH, password):
-                session['role'] = 'teacher'
-                session['user'] = username
-                flash('เข้าสู่ระบบครูประจำชั้นสำเร็จ', 'success')
-                return redirect(url_for('teacher_dashboard'))
-            else:
-                flash('ชื่อผู้ใช้หรือรหัสผ่านครูไม่ถูกต้อง!', 'error')
-        elif role == 'student':
-            conn = get_db()
-            c = conn.cursor()
-            c.execute("SELECT * FROM students WHERE student_id = ?", (username,))
-            s = c.fetchone()
-            conn.close()
-
-            if s and check_password_hash(s['password'], password):
-                session['role'] = 'student'
-                session['student_id'] = s['student_id']
-                flash('เข้าสู่ระบบสำเร็จ!', 'success')
-                return redirect(url_for('student_profile'))
-            else:
-                flash('รหัสนักเรียนหรือรหัสผ่านไม่ถูกต้อง!', 'error')
-
-    return render_template('login.html')
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
