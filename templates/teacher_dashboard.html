@@ -9,6 +9,50 @@
     <style> body { font-family: 'Kanit', sans-serif; } </style>
 </head>
 <body class="bg-slate-100 min-h-screen p-4 md:p-8">
+    <!-- 3. การ์ดสรุปสถิติภาพรวม -->
+<div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <p class="text-xs text-slate-500">นักเรียนทั้งหมด</p>
+        <h3 class="text-xl font-bold text-slate-800">{{ total_students }} คน</h3>
+    </div>
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <p class="text-xs text-slate-500">รอตรวจสอบ</p>
+        <h3 class="text-xl font-bold text-amber-600">{{ pending_students }} คน</h3>
+    </div>
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <p class="text-xs text-slate-500">อนุมัติแล้ว</p>
+        <h3 class="text-xl font-bold text-emerald-600">{{ approved_students }} คน</h3>
+    </div>
+</div>
+
+<!-- 4. ส่วนประกาศข่าวสารจากครู -->
+<div class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl mb-6">
+    <h4 class="text-xs font-bold text-indigo-800 mb-2">📢 ประกาศถึงนักเรียน</h4>
+    {% if announcement %}
+        <p class="text-xs text-indigo-700 mb-3 bg-white p-3 rounded-xl border border-indigo-100">{{ announcement['message'] }}</p>
+    {% endif %}
+    <form action="/teacher/announcement" method="POST" class="flex gap-2">
+        <input type="text" name="message" placeholder="พิมพ์ประกาศแจ้งเตือนนักเรียนที่นี่..." class="flex-1 p-2.5 bg-white border border-indigo-200 rounded-xl text-xs">
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold">ส่งประกาศ</button>
+    </form>
+</div>
+
+<!-- 2. ปุ่มดาวน์โหลดรายงาน Excel/CSV และช่องค้นหา -->
+<div class="flex justify-between items-center mb-4">
+    <form method="GET" class="flex gap-2 flex-1 mr-4">
+        <input type="text" name="search" placeholder="ค้นหาชื่อหรือรหัส..." class="p-2.5 bg-white border rounded-xl text-xs flex-1">
+        <select name="status" class="p-2.5 bg-white border rounded-xl text-xs">
+            <option value="">ทุกสถานะ</option>
+            <option value="อนุมัติแล้ว">อนุมัติแล้ว</option>
+            <option value="ให้แก้ไข">ให้แก้ไข</option>
+            <option value="รอตรวจสอบ">รอตรวจสอบ</option>
+        </select>
+        <button type="submit" class="bg-slate-800 text-white px-4 py-2.5 rounded-xl text-xs">ค้นหา</button>
+    </form>
+    <a href="/teacher/export" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1 shadow-sm">
+        📊 โหลดรายงาน Excel
+    </a>
+</div>
     <div class="max-w-5xl mx-auto space-y-6">
 
         <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex justify-between items-center">
