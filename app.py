@@ -3,9 +3,6 @@ import sqlite3
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
-import csv
-from io import StringIO
-from flask import make_response
 
 app = Flask(__name__)
 app.secret_key = 'darkwick_system_key_2026'
@@ -17,37 +14,6 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 TEACHER_USER = "admin"
 TEACHER_PASS_HASH = generate_password_hash("1234")
-# ฟังก์ชันคำนวณ BMI
-def calculate_bmi(weight, height):
-    if not weight or not height:
-        return "-", "ไม่ได้ระบุ"
-    try:
-        h_m = float(height) / 100
-        bmi = float(weight) / (h_m ** 2)
-        if bmi < 18.5:
-            return round(bmi, 1), "ผอม"
-        elif 18.5 <= bmi < 23:
-            return round(bmi, 1), "ปกติ (สมส่วน)"
-        elif 23 <= bmi < 25:
-            return round(bmi, 1), "ท้วม / น้ำหนักเกิน"
-        else:
-            return round(bmi, 1), "อ้วน"
-    except:
-        return "-", "คำนวณไม่ได้"
-
-# ทำให้ฟังก์ชัน BMI ใช้ใน Template ได้
-app.jinja_env.globals.update(calculate_bmi=calculate_bmi)
-# เพิ่มไว้ใน app.py
-def get_royal_rank(status):
-    ranks = {
-        'รอตรวจสอบ': {'name': 'Citizen of Darkwick', 'color': 'text-slate-500'},
-        'ให้แก้ไข': {'name': 'Apprentice of Darkwick', 'color': 'text-amber-600'},
-        'อนุมัติแล้ว': {'name': 'Knight of Darkwick', 'color': 'text-indigo-600'}
-    }
-    return ranks.get(status, {'name': 'Stranger', 'color': 'text-gray-400'})
-
-# อัปเดตใน app.jinja_env เพื่อให้ใช้ใน HTML ได้
-app.jinja_env.globals.update(get_royal_rank=get_royal_rank)
 
 def get_db():
     conn = sqlite3.connect('students.db')
@@ -90,64 +56,7 @@ def init_db():
     conn.close()
 
 init_db()
-@app.route('/register', methods=['POST'])
-def register():
-    student_id = request.form.get('student_id')
-    fullname = request.form.get('fullname')
-    grade = request.form.get('grade')
-    height = request.form.get('height')
-    weight = request.form.get('weight')
-    
-    conn = get_db()
-    c = conn.cursor()
-    
-    # เช็คว่ามีรหัสนักเรียนนี้ในระบบหรือยัง
-    c.execute("SELECT * FROM students WHERE student_id = ?", (student_id,))
-    existing = c.fetchone()
-    
-    if existing:
-        # ถ้ามีแล้ว อัปเดตข้อมูลแทนการสร้างซ้ำ
-        c.execute("UPDATE students SET fullname=?, grade=?, height=?, weight=? WHERE student_id=?",
-                  (fullname, grade, height, weight, student_id))
-    else:
-        # ถ้ายังไม่มี ให้สร้างใหม่
-        c.execute("INSERT INTO students (student_id, fullname, grade, height, weight, status) VALUES (?, ?, ?, ?, ?, 'รอตรวจสอบ')",
-                  (student_id, fullname, grade, height, weight))
-        
-    conn.commit()
-    conn.close()
-    
-    # บันทึกสถานะการล็อกอินลง Session ทันที
-    session['role'] = 'student'
-    session['student_id'] = student_id
-    
-    return redirect(url_for('student_dashboard'))
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        student_id = request.form.get('student_id')
-        
-        # เช็คว่าเป็นครูไหม
-        if student_id == 'teacher123':  # หรือรหัสผ่านครูของคุณ
-            session['role'] = 'teacher'
-            return redirect(url_for('teacher_dashboard'))
-            
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("SELECT * FROM students WHERE student_id = ?", (student_id,))
-        student = c.fetchone()
-        conn.close()
-        
-        if student:
-            # เจอข้อมูลเดิม ล็อกอินสำเร็จโดยไม่ต้องลงทะเบียนใหม่!
-            session['role'] = 'student'
-            session['student_id'] = student['student_id']
-            return redirect(url_for('student_dashboard'))
-        else:
-            return "ไม่พบรหัสนักเรียนนี้ในระบบ กรุณาลงทะเบียนก่อนครับ"
-            
-    return render_template('login.html')
-    
+
 @app.route('/')
 def index():
     if session.get('role') == 'student':
@@ -155,6 +64,38 @@ def index():
     elif session.get('role') == 'teacher':
         return redirect(url_for('teacher_dashboard'))
     return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        role = request.form.get('role')
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        if role == 'teacher':
+            if username == TEACHER_USER and check_password_hash(TEACHER_PASS_HASH, password):
+                session['role'] = 'teacher'
+                session['user'] = username
+                flash('เข้าสู่ระบบครูประจำชั้นสำเร็จ', 'success')
+                return redirect(url_for('teacher_dashboard'))
+            else:
+                flash('ชื่อผู้ใช้หรือรหัสผ่านครูไม่ถูกต้อง!', 'error')
+        elif role == 'student':
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("SELECT * FROM students WHERE student_id = ?", (username,))
+            s = c.fetchone()
+            conn.close()
+
+            if s and check_password_hash(s['password'], password):
+                session['role'] = 'student'
+                session['student_id'] = s['student_id']
+                flash('เข้าสู่ระบบสำเร็จ!', 'success')
+                return redirect(url_for('student_profile'))
+            else:
+                flash('รหัสนักเรียนหรือรหัสผ่านไม่ถูกต้อง!', 'error')
+
+    return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -299,6 +240,19 @@ def verify_student(student_id):
     conn.close()
     return render_template('verify.html', s=s)
 
+@app.route('/teacher')
+def teacher_dashboard():
+    if session.get('role') != 'teacher':
+        return redirect(url_for('login'))
+
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM students ORDER BY id DESC")
+    students = c.fetchall()
+    conn.close()
+
+    return render_template('teacher_dashboard.html', students=students)
+
 @app.route('/teacher/status/<student_id>', methods=['POST'])
 def update_status(student_id):
     if session.get('role') != 'teacher':
@@ -316,153 +270,6 @@ def update_status(student_id):
     flash(f'อัปเดตสถานะนักเรียนรหัส {student_id} เรียบร้อยแล้ว', 'success')
     return redirect(url_for('teacher_dashboard'))
 
-@app.route('/teacher/delete/<student_id>', methods=['POST'])
-def teacher_delete_student(student_id):
-    if session.get('role') != 'teacher':
-        return redirect(url_for('login'))
-
-    conn = get_db()
-    c = conn.cursor()
-
-    # 1. ค้นหาและลบไฟล์รูปภาพโปรไฟล์ออกจากเซิร์ฟเวอร์ (ถ้ามี)
-    c.execute("SELECT profile_img FROM students WHERE student_id = ?", (student_id,))
-    s = c.fetchone()
-    if s and s['profile_img']:
-        img_path = os.path.join(app.config['UPLOAD_FOLDER'], s['profile_img'])
-        if os.path.exists(img_path):
-            try:
-                os.remove(img_path)
-            except Exception:
-                pass
-
-    # 2. ลบประวัติส่วนสูง-น้ำหนักของนักเรียน
-    c.execute("DELETE FROM height_weight_history WHERE student_id = ?", (student_id,))
-    
-    # 3. ลบบัญชีนักเรียนออกจากฐานข้อมูล
-    c.execute("DELETE FROM students WHERE student_id = ?", (student_id,))
-    
-    conn.commit()
-    conn.close()
-
-    flash(f'ลบโปรไฟล์นักเรียนรหัส {student_id} เรียบร้อยแล้ว', 'success')
-    return redirect(url_for('teacher_dashboard'))
-    
-# --- 1. ระบบค้นหาและกรอง (เพิ่มใน route ของ teacher) ---
-@app.route('/teacher')
-def teacher_dashboard():
-    if session.get('role') != 'teacher': return redirect(url_for('login'))
-    
-    search = request.args.get('search', '')
-    status = request.args.get('status', '')
-    
-    conn = get_db()
-    c = conn.cursor()
-    
-    # 3. ดึงข้อมูลสถิติภาพรวม
-    c.execute("SELECT COUNT(*) as total FROM students")
-    total_students = c.fetchone()['total']
-    c.execute("SELECT COUNT(*) as total FROM students WHERE status = 'รอตรวจสอบ'")
-    pending_students = c.fetchone()['total']
-    c.execute("SELECT COUNT(*) as total FROM students WHERE status = 'อนุมัติแล้ว'")
-    approved_students = c.fetchone()['total']
-    
-    # 4. ดึงประกาศล่าสุด
-    c.execute("CREATE TABLE IF NOT EXISTS announcements (id INTEGER PRIMARY KEY AUTOINCREMENT, message TEXT)")
-    c.execute("SELECT * FROM announcements ORDER BY id DESC LIMIT 1")
-    announcement = c.fetchone()
-    
-    # ระบบค้นหาและกรอง
-    query = "SELECT * FROM students WHERE 1=1"
-    params = []
-    if search:
-        query += " AND (fullname LIKE ? OR student_id LIKE ?)"
-        params.extend([f"%{search}%", f"%{search}%"])
-    if status:
-        query += " AND status = ?"
-        params.append(status)
-        
-    c.execute(query + " ORDER BY id DESC", params)
-    students = c.fetchall()
-    conn.close()
-    
-    return render_template('teacher_dashboard.html', 
-                           students=students, 
-                           total_students=total_students,
-                           pending_students=pending_students,
-                           approved_students=approved_students,
-                           announcement=announcement)
-
-# --- 2. หน้ารายละเอียดนักเรียน (สำหรับครู) ---
-@app.route('/teacher/student/<student_id>')
-def teacher_student_detail(student_id):
-    if session.get('role') != 'teacher': return redirect(url_for('login'))
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM students WHERE student_id = ?", (student_id,))
-    s = c.fetchone()
-    c.execute("SELECT * FROM height_weight_history WHERE student_id = ? ORDER BY id DESC", (student_id,))
-    history = c.fetchall()
-    conn.close()
-    return render_template('student_detail.html', s=s, history=history)
-
-# --- 3. ระบบเปลี่ยนรหัสผ่าน ---
-@app.route('/change_password', methods=['GET', 'POST'])
-def change_password():
-    if 'role' not in session: return redirect(url_for('login'))
-    if request.method == 'POST':
-        old_pass = request.form.get('old_pass')
-        new_pass = request.form.get('new_pass')
-        user_id = session.get('student_id') if session.get('role') == 'student' else 'admin'
-        
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("SELECT password FROM students WHERE student_id = ?", (user_id,))
-        s = c.fetchone()
-        
-        if s and check_password_hash(s['password'], old_pass):
-            c.execute("UPDATE students SET password = ? WHERE student_id = ?", 
-                      (generate_password_hash(new_pass), user_id))
-            conn.commit()
-            flash('เปลี่ยนรหัสผ่านสำเร็จ', 'success')
-        else:
-            flash('รหัสผ่านเดิมไม่ถูกต้อง', 'error')
-        conn.close()
-    return render_template('change_password.html')
-# 2. Route สำหรับดาวน์โหลดรายงาน CSV (เปิดใน Excel ได้)
-@app.route('/teacher/export')
-def export_csv():
-    if session.get('role') != 'teacher': return redirect(url_for('login'))
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT student_id, fullname, grade, height, weight, status FROM students")
-    students = c.fetchall()
-    conn.close()
-    
-    si = StringIO()
-    cw = csv.writer(si)
-    cw.writerow(['Student ID', 'Fullname', 'Grade', 'Height (cm)', 'Weight (kg)', 'Status'])
-    for s in students:
-        cw.writerow([s['student_id'], s['fullname'], s['grade'], s['height'], s['weight'], s['status']])
-    
-    output = make_response(si.getvalue())
-    output.headers["Content-Disposition"] = "attachment; filename=students_report.csv"
-    output.headers["Content-type"] = "text/csv; charset=utf-8"
-    return output
-
-# 4. Route สำหรับบันทึกประกาศ
-@app.route('/teacher/announcement', methods=['POST'])
-def post_announcement():
-    if session.get('role') != 'teacher': return redirect(url_for('login'))
-    msg = request.form.get('message')
-    if msg:
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("CREATE TABLE IF NOT EXISTS announcements (id INTEGER PRIMARY KEY AUTOINCREMENT, message TEXT)")
-        c.execute("INSERT INTO announcements (message) VALUES (?)", (msg,))
-        conn.commit()
-        conn.close()
-    return redirect(url_for('teacher_dashboard'))
-    
 if __name__ == '__main__':
     app.run(debug=True)
             
