@@ -115,7 +115,34 @@
                         💾 บันทึกการเปลี่ยนแปลง
                     </button>
                 </form>
-
+                <!-- แถบแจ้งเตือนสถานะเด่นชัด -->
+{% if session.get('role') == 'student' %}
+    <!-- ดึงสถานะปัจจุบันของนักเรียนมาเช็ค (สมมุติว่าตัวแปรเก็บสถานะคือ student.status หรือ s.status) -->
+    {% if s['status'] == 'ให้แก้ไข' %}
+        <div class="mb-6 p-4 bg-rose-50 border-2 border-rose-400 rounded-2xl shadow-md flex items-center justify-between animate-pulse">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">⚠️</span>
+                <div>
+                    <h4 class="text-xs font-bold text-rose-800 uppercase tracking-wider">แจ้งเตือนจากคุณครู: กรุณาแก้ไขข้อมูล</h4>
+                    <p class="text-[11px] text-rose-600 mt-0.5">คุณครูตรวจสอบข้อมูลแล้วพบว่าต้องแก้ไข กรุณาตรวจสอบและอัปเดตข้อมูลให้ถูกต้อง</p>
+                </div>
+            </div>
+            <span class="px-3 py-1 bg-rose-600 text-white text-[10px] font-bold rounded-full">ให้แก้ไข</span>
+        </div>
+    {% elif s['status'] == 'อนุมัติแล้ว' %}
+        <div class="mb-6 p-4 bg-emerald-50 border-2 border-emerald-400 rounded-2xl shadow-md flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">🎉</span>
+                <div>
+                    <h4 class="text-xs font-bold text-emerald-800 uppercase tracking-wider">ยอดเยี่ยม! ข้อมูลผ่านการอนุมัติแล้ว</h4>
+                    <p class="text-[11px] text-emerald-600 mt-0.5">คุณครูได้ตรวจสอบและอนุมัติข้อมูลโปรไฟล์ของคุณเรียบร้อยแล้วครับ</p>
+                </div>
+            </div>
+            <span class="px-3 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded-full">อนุมัติแล้ว</span>
+        </div>
+    {% endif %}
+{% endif %}
+                
                 {% if history %}
                 <div class="mt-6 pt-4 border-t border-slate-100">
                     <h4 class="text-xs font-bold text-slate-700 mb-2">📜 ประวัติส่วนสูง-น้ำหนักล่าสุด</h4>
