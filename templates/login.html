@@ -1,61 +1,11 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เข้าสู่ระบบ</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style> body { font-family: 'Kanit', sans-serif; } </style>
-</head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white p-8 rounded-3xl shadow-lg border border-slate-200 w-full max-w-md space-y-6">
-        <div class="text-center">
-            <h1 class="text-2xl font-bold text-slate-800">🏫 เข้าสู่ระบบ</h1>
-            <p class="text-xs text-slate-500 mt-1">ระบบจัดการข้อมูลนักเรียน</p>
-        </div>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="p-3 rounded-xl text-xs font-medium text-center border
-                  {% if category == 'success' %}bg-emerald-50 text-emerald-700 border-emerald-200
-                  {% elif category == 'error' %}bg-rose-50 text-rose-700 border-rose-200
-                  {% else %}bg-indigo-50 text-indigo-700 border-indigo-200{% endif %}">
-                  {{ message }}
-              </div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-
-        <form action="/login" method="POST" class="space-y-4">
-            <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">สถานะผู้ใช้งาน</label>
-                <select name="role" class="w-full p-3 bg-slate-50 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="student">นักเรียน (Student)</option>
-                    <option value="teacher">ครูประจำชั้น (Teacher)</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">รหัสนักเรียน / ชื่อผู้ใช้ครู</label>
-                <input type="text" name="username" placeholder="เช่น 6601001 หรือ admin" required class="w-full p-3 bg-slate-50 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
-            </div>
-
-            <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">รหัสผ่าน</label>
-                <input type="password" name="password" placeholder="••••••••" required class="w-full p-3 bg-slate-50 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
-            </div>
-
-            <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition shadow-md">
-                เข้าสู่ระบบ
-            </button>
-        </form>
-
-        <div class="text-center pt-2">
-            <a href="/register" class="text-xs text-indigo-600 hover:underline">ยังไม่มีบัญชี? ลงทะเบียนนักเรียนใหม่ที่นี่</a>
-        </div>
+<form action="/login" method="POST">
+    <div>
+        <label>ชื่อผู้ใช้งาน</label>
+        <input type="text" name="username" required class="border p-2 rounded w-full">
     </div>
-</body>
-        </html>
-    
+    <div>
+        <label>รหัสผ่าน</label>
+        <input type="password" name="password" required class="border p-2 rounded w-full">
+    </div>
+    <button type="submit" class="bg-blue-600 text-white p-2 rounded w-full mt-4">เข้าสู่ระบบ</button>
+</form>
