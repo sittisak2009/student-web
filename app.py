@@ -240,19 +240,6 @@ def verify_student(student_id):
     conn.close()
     return render_template('verify.html', s=s)
 
-@app.route('/teacher')
-def teacher_dashboard():
-    if session.get('role') != 'teacher':
-        return redirect(url_for('login'))
-
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM students ORDER BY id DESC")
-    students = c.fetchall()
-    conn.close()
-
-    return render_template('teacher_dashboard.html', students=students)
-
 @app.route('/teacher/status/<student_id>', methods=['POST'])
 def update_status(student_id):
     if session.get('role') != 'teacher':
