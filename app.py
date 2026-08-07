@@ -37,6 +37,17 @@ def calculate_bmi(weight, height):
 
 # ทำให้ฟังก์ชัน BMI ใช้ใน Template ได้
 app.jinja_env.globals.update(calculate_bmi=calculate_bmi)
+# เพิ่มไว้ใน app.py
+def get_royal_rank(status):
+    ranks = {
+        'รอตรวจสอบ': {'name': 'Citizen of Darkwick', 'color': 'text-slate-500'},
+        'ให้แก้ไข': {'name': 'Apprentice of Darkwick', 'color': 'text-amber-600'},
+        'อนุมัติแล้ว': {'name': 'Knight of Darkwick', 'color': 'text-indigo-600'}
+    }
+    return ranks.get(status, {'name': 'Stranger', 'color': 'text-gray-400'})
+
+# อัปเดตใน app.jinja_env เพื่อให้ใช้ใน HTML ได้
+app.jinja_env.globals.update(get_royal_rank=get_royal_rank)
 
 def get_db():
     conn = sqlite3.connect('students.db')
