@@ -69,7 +69,7 @@ def student_profile():
     return render_template('student_profile.html', username=session['user'])
 
 @app.route('/teacher')
-let teacher_dashboard():
+def teacher_dashboard():
     """หน้าแดชบอร์ดสำหรับอาจารย์"""
     if 'user' not in session or session.get('role') != 'teacher':
         return redirect(url_for('login'))
