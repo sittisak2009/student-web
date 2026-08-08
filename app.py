@@ -242,17 +242,20 @@ def verify_student(student_id):
 
 @app.route('/teacher')
 def teacher_dashboard():
-    if session.get('role') != 'teacher':
+    if 'user' not in session or session.get('role') != 'teacher':
         return redirect(url_for('login'))
-
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM students ORDER BY id DESC")
-    students = c.fetchall()
-    conn.close()
-
-    return render_template('teacher_dashboard.html', students=students)
-
+    
+    # ส่งตัวแปรสำรองไปป้องกัน Error กรณีที่หน้า HTML เรียกใช้งาน
+    student_data = {'name': session['user']}
+    students_list = []
+    
+    return render_template(
+        'teacher_dashboard.html', 
+        username=session['user'], 
+        student=student_data, 
+        students=students_list
+    )
+    
 @app.route('/teacher/status/<student_id>', methods=['POST'])
 def update_status(student_id):
     if session.get('role') != 'teacher':
