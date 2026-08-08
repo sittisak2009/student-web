@@ -5,9 +5,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.config['SESSION_COOKIE_SECURE'] = False  # เปลี่ยนเป็น False สำหรับรันบนเครื่อง (http://)
-app.config['SESSION_COOKIE_HTTPONLY'] = True 
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' 
+app.secret_key = os.environ.get('SECRET_KEY', 'fallback-secret-key-for-local')
 
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
